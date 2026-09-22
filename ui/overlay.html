@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'"><title>Lane Guide · 안내창</title><link rel="stylesheet" href="overlay.css"></head>
+<body><main class="guide" id="guide">
+ <div class="direction-board">
+ <header class="handle"><span class="brand">차로 안내</span><div class="tools"><span class="badge" id="badge">연결 대기</span><button id="settings" title="설정 열기 · F10" aria-label="설정 열기">⋯</button></div></header>
+ <section class="maneuver"><div class="maneuver-icon" id="maneuver-icon"></div><div class="instruction"><div class="eyebrow" id="distance">차선 안내</div><h1 id="message">ETS2 연결 대기 중</h1></div><aside class="traffic-signal" id="traffic-signal" hidden><div class="signal-body"><span class="signal-lights" aria-hidden="true"><i class="lamp red"></i><i class="lamp amber"></i><i class="lamp green"></i></span><span class="signal-count"><strong id="signal-seconds"></strong><span>초</span></span></div><span class="signal-label" id="signal-label">시연 신호</span></aside></section>
+ </div>
+ <div class="lane-row" id="lanes" aria-label="추천 차선"></div>
+ <div class="empty-state" id="empty">게임에서 주행을 시작해 주세요</div>
+ <footer><span id="detail">주행 정보 연결 대기</span><span class="lock-hint" id="lock-hint">F8 · 위치 고정</span></footer>
+</main><script src="overlay.js"></script></body></html>

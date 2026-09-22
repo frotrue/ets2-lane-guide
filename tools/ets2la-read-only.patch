@@ -1,0 +1,85 @@
+diff --git a/src/core.cpp b/src/core.cpp
+index 2ce9a77..1d85944 100644
+--- a/src/core.cpp
++++ b/src/core.cpp
+@@ -16,6 +16,9 @@
+ 
+ #include "prism/management/item/node_item.hpp"
+ #include "prism/navigation/route_task.hpp"
++#if defined(_WIN32)
++#include "../../../native/ingame_route_publisher.hpp"
++#endif
+ 
+ #include "prism/game_actor.hpp"
+ 
+@@ -130,38 +133,30 @@ namespace ets2la_plugin
+ 
+     void CCore::get_navigation_data() const
+     {
+-        auto *gps_manager = prism::gps_manager_t::get();
+-
+-        if (gps_manager == nullptr)
+-        {
+-            return;
+-        }
+-
+-        // route_task is nullptr when no route is set
+-        if (gps_manager->simple_route_source.route_task != nullptr)
+-        {
+-            if (gps_manager->simple_route_source.route_task->physical_route_items.size != last_route_length_)
+-            {
+-                last_route_length_ = gps_manager->simple_route_source.route_task->physical_route_items.size;
+-                std::array<RouteTaskObject, 6000> route_tasks = {};
+-                int i = 0;
+-                for (const auto &route_item : gps_manager->simple_route_source.route_task->physical_route_items)
+-                {
+-                    RouteTaskObject task = {};
+-                    prism::node_item_t *node = route_item.node;
+-                    task.uid = node->uid;
+-
+-                    task.distance = route_item.total_distance_till_end;
+-                    task.time = route_item.total_time_till_end;
+-
+-                    route_tasks[i] = task;
+-                    i++;
+-                }
+-
+-                RouteMemData data = { route_tasks };
+-                this->memory_manager_->write_route_mem(data);
++        // Always refresh, including same-length changes and route cancellation.
++        // The upstream length-only cache could retain a previous destination.
++        RouteMemData data{};
++        std::size_t count=0;
++        auto *gps_manager=prism::gps_manager_t::get();
++        auto *task=gps_manager?gps_manager->simple_route_source.route_task:nullptr;
++        bool valid=gps_manager!=nullptr;
++        if(task){
++            auto& items=task->physical_route_items;
++            if(items.size>data.tasks.size()||(items.size&&!items.value))valid=false;
++            else for(std::size_t i=0;i<items.size;i++){
++                const auto& item=items[i];
++                if(!item.node||!std::isfinite(item.total_distance_till_end)||!std::isfinite(item.total_time_till_end)||item.total_distance_till_end<0||item.total_time_till_end<0){valid=false;break;}
++                data.tasks[count++]={static_cast<long long>(item.node->uid),item.total_distance_till_end,item.total_time_till_end};
+             }
+         }
++        if(!valid){data={};count=0;}
++        this->memory_manager_->write_route_mem(data);
++#if defined(_WIN32)
++        static lane::RoutePublisher publisher;
++        std::array<lane::RouteRecord,lane::RouteCapacity> records{};
++        for(std::size_t i=0;i<count;i++)records[i]={static_cast<std::uint64_t>(data.tasks[i].uid),data.tasks[i].distance,data.tasks[i].time};
++        publisher.publish(records.data(),count,!valid?lane::RouteStatus::Unavailable:count?lane::RouteStatus::Ready:lane::RouteStatus::NoRoute);
++#endif
+     }
+ 
+     void CCore::override_inputs() const
+@@ -285,8 +280,7 @@ namespace ets2la_plugin
+         // Local\ETS2LARoute
+         this->get_navigation_data();
+ 
+-        // Local\ETS2LAPluginInput
+-        this->override_inputs();
++        // Lane Guide local build: telemetry only; never apply input overrides.
+ 
+         // Local\ETS2LAPluginStatus
+         this->update_plugin_state();

@@ -1,0 +1,28 @@
+# Downloaded dependencies and locally extracted game data
+node_modules/
+vendor/
+data/
+output/
+
+# Build output and machine-local files
+native/*-build/
+*.obj
+*.lib
+*.exp
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.lnk
+*.log
+*.tmp
+.vs/
+.codegraph/
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+settings.json

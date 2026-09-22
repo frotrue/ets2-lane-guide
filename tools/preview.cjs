@@ -1,0 +1,3 @@
+const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
+const root=path.join(__dirname,'../ui');
+http.createServer((req,res)=>{const name=new URL(req.url,'http://127.0.0.1').pathname.slice(1)||'panel.html';if(!/^[a-z-]+\.(html|css|js)$/.test(name)){res.writeHead(404);res.end();return;}const file=path.join(root,name);if(!fs.existsSync(file)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.css')?'text/css':'application/javascript');fs.createReadStream(file).pipe(res);}).listen(37540,'127.0.0.1',()=>console.log('Preview: http://127.0.0.1:37540'));
