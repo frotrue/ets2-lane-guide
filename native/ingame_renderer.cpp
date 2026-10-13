@@ -107,7 +107,15 @@ static void arrow(ImDrawList*d,ImVec2 c,float s,int mask,ImU32 color){
  auto head=[&](float x,float y,int direction){ImVec2 a{c.x+x*s,c.y+y*s};if(direction==0)d->AddTriangleFilled({a.x,a.y-9*s},{a.x-8*s,a.y+3*s},{a.x+8*s,a.y+3*s},color);else d->AddTriangleFilled({a.x+direction*8*s,a.y},{a.x-direction*3*s,a.y-8*s},{a.x-direction*3*s,a.y+8*s},color);};
  line(0,22,0,-3);if(mask&1){line(0,-3,0,-21);head(0,-22,0);}if(mask&2){line(0,-3,-8,-13);line(-8,-13,-21,-13);head(-23,-13,-1);}if(mask&4){line(0,-3,8,-13);line(8,-13,21,-13);head(23,-13,1);}if(mask&8){line(0,-3,0,-20);line(0,-20,-17,-20);line(-17,-20,-17,0);d->AddTriangleFilled({c.x-17*s,c.y+8*s},{c.x-24*s,c.y-3*s},{c.x-10*s,c.y-3*s},color);}
 }
-static const char* status(const View&v){if(!v.ready)return "지도를 준비하고 있어요";if(!v.truck.placed)return "트럭 위치를 기다리는 중";if(!v.active)return "일시정지 · 운전을 시작해 주세요";if(!v.message.empty())return v.message.c_str();switch(v.guidance.status){case NavStatus::NoRoute:return "게임 지도에서 목적지를 설정하세요";case NavStatus::OffRoute:return "경로를 다시 확인하고 있어요";case NavStatus::Rerouting:return "새 경로를 찾았어요";case NavStatus::Arrived:return "목적지 부근에 도착했어요";default:return "게임 내비 경로를 따라 주행하세요";}}
+static const char* status(const View&v){
+ // Initialization failures leave ready=false; show the recorded error instead
+ // of disguising a stopped worker as an indefinitely loading map.
+ if(!v.ready)return v.message.empty()?"지도를 준비하고 있어요":v.message.c_str();
+ if(!v.truck.placed)return "트럭 위치를 기다리는 중";
+ if(!v.active)return "일시정지 · 운전을 시작해 주세요";
+ if(!v.message.empty())return v.message.c_str();
+ switch(v.guidance.status){case NavStatus::NoRoute:return "게임 지도에서 목적지를 설정하세요";case NavStatus::OffRoute:return "경로를 다시 확인하고 있어요";case NavStatus::Rerouting:return "새 경로를 찾았어요";case NavStatus::Arrived:return "목적지 부근에 도착했어요";default:return "게임 내비 경로를 따라 주행하세요";}
+}
 static void drawHud(const View&v){
  const auto display=ImGui::GetIO().DisplaySize;if(!visible||display.x<1||display.y<1)return;
  const bool lanes=v.active&&v.guidance.status==NavStatus::Guidance&&!v.guidance.directions.empty()&&v.guidance.recommended;
@@ -165,14 +173,16 @@ static void drawHud(const View&v){
  }
  d->AddLine({p.x+16*s,p.y+row*s},{p.x+408*s,p.y+row*s},IM_COL32(54,58,57,255),s);
  std::string footer=v.test?"시연 · 실제 주행 아님":v.gpsMatched&&v.active?"게임 내비 연동   ·   F10 설정":"F10 설정   ·   F9 표시   ·   F8 다음 위치";
- text(20,row+6,13,IM_COL32(167,181,175,255),footer.c_str());
+ if(!v.test&&!v.compatibilityWarning.empty())footer="지도 버전 확인 필요   ·   F10 상세";
+ text(20,row+6,13,v.compatibilityWarning.empty()?IM_COL32(167,181,175,255):IM_COL32(255,206,83,255),footer.c_str());
  ImGui::End();ImGui::PopStyleColor();ImGui::PopStyleVar();
 }
 static void drawSettings(const View&v){
  if(!settings)return;const auto display=ImGui::GetIO().DisplaySize;
- const float panelScale=std::min(std::clamp(display.x/1920.f,1.f,1.6f),std::min((display.x-20)/560,(display.y-20)/440));
+ const float panelHeight=v.compatibilityWarning.empty()?440.f:510.f;
+ const float panelScale=std::min(std::clamp(display.x/1920.f,1.f,1.6f),std::min((display.x-20)/560,(display.y-20)/panelHeight));
  if(panelScale<=0)return;
- ImGui::SetNextWindowSize({560*panelScale,440*panelScale});
+ ImGui::SetNextWindowSize({560*panelScale,panelHeight*panelScale});
  ImGui::SetNextWindowPos({display.x/2,display.y/2},ImGuiCond_Always,{.5f,.5f});
  const auto flags=ImGuiWindowFlags_NoInputs|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoSavedSettings|ImGuiWindowFlags_NoScrollbar;
  if(ImGui::Begin("주행 안내 · F10으로 닫기",nullptr,flags)){
@@ -197,6 +207,10 @@ static void drawSettings(const View&v){
   ImGui::TextUnformatted("게임 내비게이션 연동");
   ImGui::TextWrapped("목적지와 경유지는 게임 지도에서 설정하세요. 화살표·거리와 함께 필요한 차선·신호 정보를 표시합니다.");
   ImGui::TextWrapped("%s",status(v));
+  if(!v.compatibilityWarning.empty()){
+   ImGui::TextWrapped("%s",v.compatibilityWarning.c_str());
+   ImGui::TextWrapped("기존 지도에서 연결이 확인되는 구간은 계속 안내합니다. 도로가 바뀐 구간은 지도 갱신이 필요합니다.");
+  }
   ImGui::TextDisabled("선택한 위치와 크기는 다음 실행에도 유지됩니다.");
  }ImGui::End();
 }

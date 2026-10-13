@@ -39,11 +39,16 @@ static void run(){
  try {
   if(!rendererStart(moduleHandle))throw std::runtime_error("DirectX 11 hook initialization failed");
   auto map=r.test?RoadMap::demonstration():RoadMap::load(moduleDirectory()/L"lane_guide"/L"map.bin");
-  if(!r.test&&executableVersion()!=map->version)throw std::runtime_error("게임 버전이 달라졌습니다. 지도 데이터를 다시 생성해 주세요.");
+  std::string compatibilityWarning;
+  if(!r.test){
+   const auto gameVersion=executableVersion();
+   if(gameVersion.empty())compatibilityWarning="게임 버전 확인 불가 · 지도 "+map->version;
+   else if(gameVersion!=map->version)compatibilityWarning="게임 "+gameVersion+" · 지도 "+map->version;
+  }
   Navigator nav(*map);SignalReader signals;
   std::vector<uint64_t> lastRoute;uint64_t lastMatch=0;
   if(r.test)nav.path={0,1,2};
-  {std::lock_guard<std::mutex> guard(r.mutex);r.view.map=map;r.view.ready=true;r.view.message.clear();}
+  {std::lock_guard<std::mutex> guard(r.mutex);r.view.map=map;r.view.ready=true;r.view.message.clear();r.view.compatibilityWarning=compatibilityWarning;}
   while(!r.stopping){
    Truck truck;{std::lock_guard<std::mutex> guard(r.mutex);truck=r.truck;}
    const auto now=GetTickCount64();

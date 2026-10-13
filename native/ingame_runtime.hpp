@@ -10,6 +10,7 @@ struct View {
  SignalResult signal;
  std::shared_ptr<const RoadMap> map;
  std::string message;
+ std::string compatibilityWarning;
  bool ready=false,active=false,test=false;
  RouteStatus gpsStatus=RouteStatus::Unavailable;
  bool gpsMatched=false;

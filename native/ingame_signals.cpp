@@ -32,10 +32,6 @@ constexpr int kPluginVersion = 1610; // stoi("1.61.0" with dots removed), as ups
 constexpr std::uint64_t kFreshMs = 750;
 constexpr std::uint64_t kProgressMs = 1000;
 
-bool supportedGame(const std::string& version) {
-    return version == "1.61" || version.compare(0, 5, "1.61.") == 0;
-}
-
 template<class T>
 T readPacked(const std::uint8_t* bytes, std::size_t offset) {
     T value{};
@@ -168,9 +164,12 @@ public:
         return true;
     }
 
-    SignalResult select(const std::vector<SignalTarget>& targets, const std::string& gameVersion,
+    SignalResult select(const std::vector<SignalTarget>& targets, const std::string& /*gameVersion*/,
                         std::uint64_t now) const {
-        if (!supportedGame(gameVersion) || !receivedAt_ || now < *receivedAt_ || now - *receivedAt_ > kFreshMs ||
+        // Map version is metadata, not the shared-memory schema. ingest still
+        // validates the pinned producer format; route ID/location and timer
+        // progress must also match before any signal is shown.
+        if (!receivedAt_ || now < *receivedAt_ || now - *receivedAt_ > kFreshMs ||
             targets.empty() || targets.size() > kSlotCount) return {};
         std::array<bool, kSlotCount> selected{};
         for (const auto& target : targets) {
@@ -232,7 +231,7 @@ SignalReader::~SignalReader() = default;
 void SignalReader::clear() { impl_->receiver.clear(); impl_->sequence = 0; }
 SignalResult SignalReader::update(const std::vector<SignalTarget>& targets, bool active,
                                   const std::string& gameVersion) {
-    if (!active || !supportedGame(gameVersion)) { clear(); return {}; }
+    if (!active) { clear(); return {}; }
 #if defined(_WIN32)
     std::array<std::uint8_t, 6> status{}, statusAgain{};
     std::array<std::uint8_t, kSnapshotBytes> snapshot{}, snapshotAgain{};
@@ -252,6 +251,7 @@ SignalResult SignalReader::update(const std::vector<SignalTarget>& targets, bool
     return impl_->receiver.select(targets, gameVersion, now);
 #else
     (void)targets;
+    (void)gameVersion;
     clear(); return {}; // Deterministic snapshot tests remain portable.
 #endif
 }

@@ -6,7 +6,7 @@ $taskExe = Join-Path $GamePath 'bin\win_x64\eurotrucks2.exe'
 if (-not (Test-Path -LiteralPath $taskExe)) { throw 'ETS2 x64 executable not found.' }
 $taskInfo = (Get-Item -LiteralPath $taskExe).VersionInfo
 $taskVersion = '{0}.{1}.{2}.{3}' -f $taskInfo.FileMajorPart,$taskInfo.FileMinorPart,$taskInfo.FileBuildPart,$taskInfo.FilePrivatePart
-if ($taskVersion -ne '1.61.1.0') { throw "This map was built for ETS2 1.61.1.0; found $taskVersion. Rebuild and validate the map first." }
+if ($taskVersion -ne '1.61.1.0') { Write-Warning "ETS2 $taskVersion differs from the originally tested 1.61.1.0 build. Continuing; the HUD will warn if the installed map version differs." }
 $taskDll = Join-Path $taskRoot 'native\ingame-build\Release\ets2_lane_ingame.dll'
 $taskMap = Join-Path $taskRoot 'data\ingame-map.bin'
 $taskProducer = Join-Path $taskRoot 'native\ets2la_plugin.dll'
