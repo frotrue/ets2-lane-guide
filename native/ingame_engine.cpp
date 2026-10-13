@@ -112,12 +112,28 @@ Guidance Navigator::update(const Truck&t,uint64_t now){
  }
  double signalAhead=-best.along;
  for(size_t i=at;i<path.size();i++){const auto&e=map.edges[path[i]];if(!e.signals.empty()){double d=signalAhead+e.signalStop;if(d>=0&&d<=180){out.signals=e.signals;out.signalDistance=std::round(d);}break;}signalAhead+=e.length;if(signalAhead>180||(i>at&&e.kind==1&&!e.continuation))break;}
- double ahead=std::max(0.,current.length-best.along);const int lanes=current.kind==0?current.lanes:current.continuation;
- for(size_t i=at+1;i<path.size();i++){const auto&e=map.edges[path[i]];if(e.directions.size()>1&&e.recommended){
-   const double lookahead=std::max(110.,std::min(450.,std::abs(t.speed)*12));
-   if(lanes==int(e.directions.size())&&ahead<lookahead){out.status=NavStatus::Guidance;out.directions=e.directions;out.recommended=e.recommended;out.turn=e.turn;out.distance=std::round(ahead);return out;}break;
+ double ahead=std::max(0.,current.length-best.along);
+ int approachLanes=current.kind==0?current.lanes:current.continuation;
+ bool sameApproach=approachLanes>1;
+ const double lookahead=std::max(110.,std::min(450.,std::abs(t.speed)*12));
+ for(size_t i=at+1;i<path.size();i++){
+  const auto&e=map.edges[path[i]];
+  if(map.edges[path[i-1]].to!=e.from)break;
+  if(e.directions.size()>1&&e.recommended&&approachLanes==int(e.directions.size())){
+   out.nextLanes={e.directions,e.recommended,std::round(ahead)};
+   // Only promote the preview to current-road guidance when lane continuity
+   // from the truck is verified and the existing approach window is reached.
+   if(sameApproach&&ahead<lookahead){out.status=NavStatus::Guidance;out.directions=e.directions;out.recommended=e.recommended;out.turn=e.turn;out.distance=std::round(ahead);}
+   return out;
   }
-  if((e.kind==0&&e.lanes!=lanes)||(e.kind==1&&e.continuation!=lanes))break;ahead+=e.length;if(ahead>500)break;
+  // Keep looking through lane changes/turns for a future junction, validating
+  // its own entry lane count. Explicit boundary joins preserve that count.
+  if(e.kind==0||e.kind==1){
+   const int nextLanes=e.kind==0?e.lanes:e.continuation;
+   if(nextLanes!=approachLanes)sameApproach=false;
+   approachLanes=nextLanes;
+  }
+  ahead+=e.length;
  }
  return out;
 }

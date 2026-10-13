@@ -119,9 +119,11 @@ static const char* status(const View&v){
 static void drawHud(const View&v){
  const auto display=ImGui::GetIO().DisplaySize;if(!visible||display.x<1||display.y<1)return;
  const bool lanes=v.active&&v.guidance.status==NavStatus::Guidance&&!v.guidance.directions.empty()&&v.guidance.recommended;
+ const auto&nextLanes=v.guidance.nextLanes;
+ const bool preview=v.active&&!lanes&&!nextLanes.directions.empty()&&nextLanes.recommended&&nextLanes.distance>=0;
  const bool maneuver=v.active&&(v.guidance.status==NavStatus::Navigation||v.guidance.status==NavStatus::Guidance)&&v.guidance.turn&&v.guidance.distance>=0;
  const bool signal=v.active&&v.signal.available;
- const float height=154.f+(lanes?80.f:0.f)+(signal?48.f:0.f);
+ const float height=154.f+(lanes?80.f:preview?108.f:0.f)+(signal?48.f:0.f);
  const float s=std::min(uiScale,std::min(display.x/424,display.y/height)),w=424*s,h=height*s;
  const float maxX=std::max(0.f,display.x-w),maxY=std::max(0.f,display.y-h),margin=24*s;
  const int column=positionPreset%3;
@@ -148,7 +150,17 @@ static void drawHud(const View&v){
  }
  else {text(24,25,26,white,"주행 안내");wrapped(24,70,376,18,white,v.ready&&!v.message.empty()?v.message.c_str():status(v));}
  float row=128;
- if(lanes){const auto count=v.guidance.directions.size();for(size_t i=0;i<count;i++){const float x=424.f*(float(i)+.5f)/float(count);arrow(d,{p.x+x*s,p.y+(row+38)*s},.86f*s,v.guidance.directions[i],v.guidance.recommended&(1u<<i)?yellow:dim);}row+=80;}
+ if(lanes||preview){
+  if(preview){
+   char label[96];if(nextLanes.distance>=1000)std::snprintf(label,sizeof label,"다음 차선 안내 · %.1f km",nextLanes.distance/1000);else std::snprintf(label,sizeof label,"다음 차선 안내 · %.0f m",nextLanes.distance);
+   auto*font=ImGui::GetFont();const float measured=font->CalcTextSizeA(17,10000,0,label).x;
+   text(20,row+9,std::min(17.f,384.f/std::max(measured,1.f)*17.f),IM_COL32(169,206,229,255),label);row+=28;
+  }
+  const auto&directions=preview?nextLanes.directions:v.guidance.directions;
+  const auto recommended=preview?nextLanes.recommended:v.guidance.recommended;
+  const ImU32 highlight=preview?IM_COL32(169,206,229,255):yellow;
+  const auto count=directions.size();for(size_t i=0;i<count;i++){const float x=424.f*(float(i)+.5f)/float(count);arrow(d,{p.x+x*s,p.y+(row+38)*s},.86f*s,directions[i],recommended&(1u<<i)?highlight:dim);}row+=80;
+ }
  if(signal){
   const int state=v.signal.rawState;const ImU32 color=state==8?IM_COL32(98,240,149,255):state==1?IM_COL32(255,206,83,255):IM_COL32(255,117,120,255);
   d->AddLine({p.x+16*s,p.y+row*s},{p.x+408*s,p.y+row*s},IM_COL32(54,58,57,255),s);

@@ -39,6 +39,12 @@ public:
  std::vector<uint32_t> cityGoals(int city) const;
 };
 enum class NavStatus { NoRoute,OffRoute,Rerouting,Arrived,Guidance,Cruise,Navigation };
+// The lane layout at a future junction, not a claim about the current road.
+struct LanePreview {
+ std::vector<uint8_t> directions;
+ uint8_t recommended=0;
+ double distance=-1;
+};
 struct Guidance {
  NavStatus status=NavStatus::NoRoute;
  std::string destination;
@@ -46,6 +52,7 @@ struct Guidance {
  uint8_t recommended=0,turn=0;
  double distance=-1,signalDistance=-1;
  std::vector<SignalTarget> signals;
+ LanePreview nextLanes;
 };
 class Navigator {
  const RoadMap& map;
