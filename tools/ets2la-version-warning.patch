@@ -1,0 +1,15 @@
+diff --git a/src/core.cpp b/src/core.cpp
+--- a/src/core.cpp
++++ b/src/core.cpp
+@@ -367,8 +367,9 @@
+ 
+         // search for the parsed game version in the game name which is for example: "Euro Truck Simulator 2 1.55.1.0s"
+         if (fmt::to_string(this->init_params_->common.game_name).find(game_version_parsed) == std::string::npos) {
+-            this->error("Detected unsupported game version: {}", fmt::to_string(this->init_params_->common.game_name));
+-            return false; // game version not supported, dont load plugin
++            // Lane Guide: a version label alone does not prove a layout change.
++            // Keep all required pattern scans below; do not guess missing addresses.
++            this->info("[Lane Guide] Untested game version: {}. Continuing with required memory-pattern checks.", fmt::to_string(this->init_params_->common.game_name));
+         } else {
+             this->info("Detected matching game version: {}", fmt::to_string(this->init_params_->common.game_name));
+         }
