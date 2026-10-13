@@ -167,10 +167,11 @@ int main() {
             receiver.clear();
             expect(!select(receiver, 2600).available, "Clear retained live data");
         });
-        suite("unsupported versions and bad data clear previous observations", [] {
+        suite("map versions are advisory; incompatible producer formats and bad data are rejected", [] {
             auto receiver = ticking();
-            expect(!receiver.select(targets(), "1.62.0.0", 1200).available, "Unsupported map version visible");
-            expect(!receiver.select(targets(), "1.610.0", 1200).available, "Version prefix collision");
+            expect(receiver.select(targets(), "1.62.0.0", 1200).available, "Map version blocked a verified signal");
+            expect(receiver.select(targets(), "", 1200).available, "Missing map version blocked a verified signal");
+            expect(!receiver.select({{99, {{100, 4, 200}}}}, "1.62.0.0", 1200).available, "Version tolerance bypassed route matching");
             expect(!ingest(receiver, {PackedSignal{}}, 1400, 3, 1600), "Unsupported plugin version accepted");
             expect(!select(receiver, 1400).available, "Unsupported version retained previous value");
             receiver = ticking();
@@ -214,7 +215,7 @@ int main() {
             lane::SignalReader reader;
             expect(!reader.update(targets(), false, "1.61.1.0").available, "Inactive reader visible");
             reader.clear();
-            expect(!reader.update(targets(), true, "1.62.0.0").available, "Unsupported reader version visible");
+            expect(!reader.update(targets(), false, "1.62.0.0").available, "Inactive reader visible after version change");
         });
         std::cout << "PASS: " << suites << " suites, " << assertions << " assertions. No game or external process used.\n";
         return 0;

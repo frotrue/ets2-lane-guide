@@ -5,7 +5,7 @@ if (Get-Process eurotrucks2 -ErrorAction SilentlyContinue) { throw 'Close ETS2 b
 $taskBinary = Join-Path $GamePath 'bin\win_x64\eurotrucks2.exe'
 if (-not (Test-Path -LiteralPath $taskBinary)) { throw 'ETS2 executable not found. Supply -GamePath.' }
 $taskVersion = (Get-Item -LiteralPath $taskBinary).VersionInfo.FileVersion
-if ($taskVersion -notmatch '^1\.61\.') { throw "The signal plugin supports ETS2 1.61.x only; found $taskVersion." }
+if ($taskVersion -notmatch '^1\.61\.') { Write-Warning "ETS2 $taskVersion differs from the plugin's original 1.61.x target. Continuing; the patched plugin still requires its memory-pattern checks to pass." }
 $taskDir = Join-Path $GamePath 'bin\win_x64\plugins'
 $taskTarget = Join-Path $taskDir 'ets2la_plugin.dll'
 $taskSource = Join-Path $taskRoot 'native\ets2la_plugin.dll'

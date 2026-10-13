@@ -2,7 +2,7 @@
 
 이 저장소는 게임 데이터와 빌드 결과를 포함하지 않습니다. 아래는 Windows x64의 **새 clone**에서 의존성을 준비하는 순서입니다. 기존 `vendor/`의 수정 사항을 초기화하는 명령은 실행하지 마세요. 각 명령이 실패하면 그 단계에서 중단하고 원인을 확인합니다.
 
-필요한 도구: Git, Node.js 24.13 이상·npm 11.6.2 이상, Python 3, Visual Studio 2022의 Desktop development with C++·Windows SDK·CMake. 지도 생성에는 본인이 설치한 ETS2 1.61.1.0과 보유 DLC가 필요합니다. 다른 게임 버전은 재검증 전까지 지원하지 않습니다.
+필요한 도구: Git, Node.js 24.13 이상·npm 11.6.2 이상, Python 3, Visual Studio 2022의 Desktop development with C++·Windows SDK·CMake. 지도 생성에는 본인이 설치한 ETS2와 보유 DLC가 필요합니다. 기존 검증 기준은 ETS2 1.61.1.0입니다. 다른 버전에서도 설치와 안내를 시도하지만, 지도 파서·게임 내부 구조의 호환성은 별도로 확인해야 합니다.
 
 ## 외부 소스
 
@@ -31,6 +31,8 @@ git -C vendor/maps apply ../../tools/parser-compat.patch
 ```
 
 ETS2LA 패치는 이 저장소의 `native/ingame_route_publisher.hpp`·`native/ingame_route_protocol.hpp`를 사용하므로 위 폴더 구조를 유지합니다. fmt는 ETS2LA submodule 커밋 `9ff9c695db8aeadf70eb26498a0e1cdceeeb849a`로 준비됩니다. 각 구성 요소의 라이선스는 [THIRD_PARTY.md](../THIRD_PARTY.md)에 정리했습니다.
+
+`build-signal-plugin.ps1`은 위 읽기 전용 패치와 `tools/ets2la-version-warning.patch`를 검사하고 아직 적용되지 않은 패치만 적용합니다. 따라서 이전에 패치한 `vendor/ets2la-plugin`도 그대로 사용합니다. 로컬 수정과 충돌하면 초기화하지 않고 오류로 중단합니다. 버전 경고 패치는 버전 문자열 불일치를 로그 경고로 바꾸며, 필수 메모리 패턴 검사는 유지합니다.
 
 ## SCS SDK 1.14
 
